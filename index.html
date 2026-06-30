@@ -1714,8 +1714,13 @@
         <input type="number" id="almPlates" value="1" min="1" oninput="calcAlmond()">
       </div>
       <div class="form-group">
-        <label>سعر الصينية (دج)</label>
+        <label>سعر بيع الصينية (دج)</label>
         <input type="number" id="almPricePerPlate" value="500" oninput="calcAlmond()">
+      </div>
+      <div class="form-group">
+        <label>💰 تكلفة الصينية الواحدة (دج)</label>
+        <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
+        <div class="form-hint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
       </div>
 
       <div class="form-group">
@@ -1792,6 +1797,10 @@
         <div class="form-group">
           <label>سعر الصينية (دج)</label>
           <input type="number" id="almEditPrice">
+        </div>
+        <div class="form-group">
+          <label>💰 تكلفة الصينية الواحدة (دج)</label>
+          <input type="number" id="almEditCostPerPlate">
         </div>
         <div class="form-group">
           <label>المبلغ المدفوع إجمالاً (دج)</label>
@@ -2064,6 +2073,11 @@ function migrateOldAlmondData() {
       delete a.name; delete a.phone; delete a.plates;
       changed = true;
     }
+    // Entries saved before the cost-per-plate feature was added have no costPerPlate/totalCost
+    // fields at all — default them to 0 so profit calculations treat them as "cost unknown"
+    // (i.e. fully counted as profit, matching the old behaviour) instead of producing NaN.
+    if (a.costPerPlate === undefined) { a.costPerPlate = 0; changed = true; }
+    if (a.totalCost === undefined) { a.totalCost = 0; changed = true; }
   });
   if (changed) saveData();
 }
@@ -4153,18 +4167,22 @@ function onAlmondQalbTypeChange() {
 function calcAlmond() {
   const plates = parseFloat(document.getElementById('almPlates').value)||0;
   const price = parseFloat(document.getElementById('almPricePerPlate').value)||0;
+  const cost = parseFloat(document.getElementById('almCostPerPlate').value)||0;
   const returnedNow = parseFloat(document.getElementById('almReturnedNow').value)||0;
   const paid = parseFloat(document.getElementById('almPaid').value)||0;
   const netPlates = Math.max(0, plates - returnedNow);
   const total = netPlates * price;
   const remaining = Math.max(0, total - paid);
+  const profitPerPlate = price - cost;
+  const totalProfit = netPlates * profitPerPlate;
   document.getElementById('almondCalcResult').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>صواني مُسلَّمة</span><strong>${plates}</strong></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>صواني مرجوعة الآن</span><strong>${returnedNow}</strong></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>صواني متبقية عند الزبون</span><strong>${netPlates}</strong></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;padding-top:6px;border-top:1px solid var(--cream-dark)"><span>الإجمالي المستحق (${netPlates} × ${price} دج)</span><strong>${total} دج</strong></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>مدفوع</span><strong style="color:#4CAF50">${paid} دج</strong></div>
-    <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--cream-dark)"><span>الدين المتبقي</span><strong style="color:${remaining>0?'#E53935':'#4CAF50'}">${remaining} دج</strong></div>`;
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;padding-top:8px;border-top:2px solid var(--cream-dark)"><span>الدين المتبقي</span><strong style="color:${remaining>0?'#E53935':'#4CAF50'}">${remaining} دج</strong></div>
+    <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--cream-dark)"><span style="font-weight:700">💰 الربح الصافي المتوقع (${netPlates} × (${price}-${cost}))</span><strong style="color:${totalProfit>=0?'#2E7D32':'#C62828'}">${totalProfit} دج</strong></div>`;
 }
 
 function openAlmondModal(prefillCustomerId) {
@@ -4179,6 +4197,7 @@ function openAlmondModal(prefillCustomerId) {
   document.getElementById('almTrayType').value='بلاط 40/60';
   document.getElementById('almPlates').value=1;
   document.getElementById('almPricePerPlate').value=500;
+  document.getElementById('almCostPerPlate').value=0;
   document.getElementById('almReturnedNow').value=0;
   document.getElementById('almPaid').value=0;
   document.getElementById('almNotes').value='';
@@ -4214,6 +4233,7 @@ function saveAlmond() {
 
   const plates = parseFloat(document.getElementById('almPlates').value)||0;
   const price = parseFloat(document.getElementById('almPricePerPlate').value)||0;
+  const costPerPlate = parseFloat(document.getElementById('almCostPerPlate').value)||0;
   const returnedNow = parseFloat(document.getElementById('almReturnedNow').value)||0;
   const paid = parseFloat(document.getElementById('almPaid').value)||0;
   if (plates<=0) return alert('أدخل عدد صواني صحيح');
@@ -4227,6 +4247,7 @@ function saveAlmond() {
 
   const remainingPlates = plates - returnedNow;
   const total = remainingPlates * price;
+  const totalCost = remainingPlates * costPerPlate;
   const remaining = Math.max(0, total - paid);
 
   data.almond.push({
@@ -4237,7 +4258,8 @@ function saveAlmond() {
     platesReturned: returnedNow,
     platesRemaining: remainingPlates,
     pricePerPlate: price,
-    total, paid,
+    costPerPlate,
+    total, totalCost, paid,
     remaining,
     notes: document.getElementById('almNotes').value,
     date: new Date().toISOString(),
@@ -4449,13 +4471,15 @@ function openAlmondUpdate(id) {
   document.getElementById('almondUpdateInfo').innerHTML =
     `<span>🍯</span><span><strong>${escapeHtml(c?c.name:'(زبون محذوف)')}</strong> — ${a.qalbType} — ${a.trayType}<br>
     صواني: ${a.platesDelivered} مُسلَّمة / ${a.platesReturned} مرجوعة / <strong>${a.platesRemaining}</strong> متبقية<br>
-    الإجمالي: ${a.total} دج | مدفوع: <strong class="profit-positive">${a.paid} دج</strong> | دين: <strong class="${a.remaining>0?'profit-negative':'profit-positive'}">${a.remaining} دج</strong></span>`;
+    الإجمالي: ${a.total} دج | مدفوع: <strong class="profit-positive">${a.paid} دج</strong> | دين: <strong class="${a.remaining>0?'profit-negative':'profit-positive'}">${a.remaining} دج</strong><br>
+    تكلفة: ${a.totalCost||0} دج | الربح الصافي المتوقع: <strong>${((a.total||0)-(a.totalCost||0)).toFixed(0)} دج</strong></span>`;
 
   document.getElementById('almPayAmount').value='';
   document.getElementById('almReturnQty').value='';
   document.getElementById('almEditPlates').value=a.platesDelivered;
   document.getElementById('almEditReturned').value=a.platesReturned;
   document.getElementById('almEditPrice').value=a.pricePerPlate;
+  document.getElementById('almEditCostPerPlate').value=a.costPerPlate||0;
   document.getElementById('almEditPaid').value=a.paid;
   document.getElementById('almEditQalbType').value=a.qalbType||'';
   document.getElementById('almEditTrayType').value=a.trayType||'بلاط 40/60';
@@ -4477,7 +4501,7 @@ function switchAlmondTab(tab) {
 }
 
 document.addEventListener('input', e=>{
-  if (['almPayAmount','almReturnQty','almEditPlates','almEditReturned','almEditPrice','almEditPaid'].includes(e.target.id)) {
+  if (['almPayAmount','almReturnQty','almEditPlates','almEditReturned','almEditPrice','almEditCostPerPlate','almEditPaid'].includes(e.target.id)) {
     updateAlmondPreview();
   }
 });
@@ -4502,11 +4526,14 @@ function updateAlmondPreview() {
     const plates = parseFloat(document.getElementById('almEditPlates').value)||0;
     const returned = parseFloat(document.getElementById('almEditReturned').value)||0;
     const price = parseFloat(document.getElementById('almEditPrice').value)||0;
+    const costPerPlate = parseFloat(document.getElementById('almEditCostPerPlate').value)||0;
     const paid = parseFloat(document.getElementById('almEditPaid').value)||0;
     const remainingPlates = Math.max(0, plates-returned);
     const total = remainingPlates*price;
+    const totalCost = remainingPlates*costPerPlate;
     const remaining = Math.max(0, total-paid);
-    prev.innerHTML = `صواني متبقية = <strong>${remainingPlates}</strong> | الإجمالي = <strong>${total} دج</strong> | الدين = <strong class="${remaining>0?'profit-negative':'profit-positive'}">${remaining} دج</strong>`;
+    const expectedProfit = total - totalCost;
+    prev.innerHTML = `صواني متبقية = <strong>${remainingPlates}</strong> | الإجمالي = <strong>${total} دج</strong> | الدين = <strong class="${remaining>0?'profit-negative':'profit-positive'}">${remaining} دج</strong><br>💰 الربح الصافي المتوقع = <strong style="color:${expectedProfit>=0?'#2E7D32':'#C62828'}">${expectedProfit.toFixed(0)} دج</strong>`;
   }
 }
 
@@ -4527,6 +4554,7 @@ function applyAlmondUpdate() {
     a.platesReturned += retQty;
     a.platesRemaining -= retQty;
     a.total = a.platesRemaining * a.pricePerPlate;
+    a.totalCost = a.platesRemaining * (a.costPerPlate || 0);
     a.remaining = Math.max(0, a.total - a.paid);
     if (a.paid > a.total) a.paid = a.total;
     a.status = a.remaining<=0 ? 'مكتمل' : 'جزئي';
@@ -4535,11 +4563,13 @@ function applyAlmondUpdate() {
     a.platesReturned = parseFloat(document.getElementById('almEditReturned').value)||0;
     a.platesRemaining = Math.max(0, a.platesDelivered - a.platesReturned);
     a.pricePerPlate = parseFloat(document.getElementById('almEditPrice').value)||0;
+    a.costPerPlate = parseFloat(document.getElementById('almEditCostPerPlate').value)||0;
     a.paid = parseFloat(document.getElementById('almEditPaid').value)||0;
     a.qalbType = document.getElementById('almEditQalbType').value;
     a.trayType = document.getElementById('almEditTrayType').value;
     a.notes = document.getElementById('almEditNotes').value;
     a.total = a.platesRemaining * a.pricePerPlate;
+    a.totalCost = a.platesRemaining * a.costPerPlate;
     a.remaining = Math.max(0, a.total - a.paid);
     a.status = a.remaining<=0 ? 'مكتمل' : 'جزئي';
   }
@@ -4773,16 +4803,26 @@ function renderProfits() {
 
   // Qalb el Louz: only money actually collected (paid) counts as realized revenue.
   // Outstanding debt is NOT profit yet — it only becomes profit once collected.
+  // The matching cost is taken proportionally to how much of the total has been paid so far
+  // (e.g. if 50% of an entry's total has been paid, 50% of its cost is recognized too),
+  // so partial payments don't get counted as 100% pure profit before their cost is realized.
   const almondPaid = data.almond.reduce((s,a)=>s+a.paid,0);
+  const almondCost = data.almond.reduce((s,a) => {
+    const totalCost = a.totalCost || 0;
+    if (!a.total || a.total<=0) return s;
+    const paidRatio = Math.min(1, a.paid / a.total);
+    return s + totalCost * paidRatio;
+  }, 0);
+  const almondProfit = almondPaid - almondCost;
 
   const totalRev = ordersRev + almondPaid;
-  const totalCost = ordersCost; // almond has no separate ingredient cost tracked here
+  const totalCost = ordersCost + almondCost;
   const net = totalRev - totalCost;
 
   document.getElementById('totalRevenue').textContent = totalRev.toLocaleString('en-US') + ' دج';
   document.getElementById('totalCosts').textContent = totalCost.toLocaleString('en-US') + ' دج';
   document.getElementById('netProfit').textContent = net.toLocaleString('en-US') + ' دج';
-  document.getElementById('almondProfit').textContent = almondPaid.toLocaleString('en-US') + ' دج';
+  document.getElementById('almondProfit').textContent = almondProfit.toLocaleString('en-US') + ' دج';
 
   // Build a combined, chronological record: sweets orders + almond entries (showing what was collected).
   const combinedRows = [
@@ -4792,11 +4832,13 @@ function renderProfits() {
     })),
     ...data.almond.map(a => {
       const c = getCustomerById(a.customerId);
+      const paidRatio = (a.total>0) ? Math.min(1, a.paid / a.total) : 0;
+      const matchedCost = (a.totalCost || 0) * paidRatio;
       return {
         date: a.date,
         product: `🍯 ${a.qalbType || 'قلب اللوز'} — ${c ? c.name : 'زبون'}`,
         qty: `${a.platesDelivered - a.platesReturned} صينية`,
-        revenue: a.paid, cost: 0, profit: a.paid, source: 'قلب اللوز'
+        revenue: a.paid, cost: matchedCost, profit: a.paid - matchedCost, source: 'قلب اللوز'
       };
     })
   ];
