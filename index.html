@@ -1192,40 +1192,71 @@
           <p>تتبع الزبائن، الصواني (مستلمة/مرجوعة/متبقية)، والديون — كل ذلك مرتبط بسجل الزبون التراكمي</p>
         </div>
 
-        <div class="stats-grid" id="almondStatsGrid"></div>
-
-        <div class="flex-between mb-20">
-          <div></div>
-          <button class="btn btn-primary" onclick="openAlmondModal()">➕ معاملة جديدة</button>
+        <!-- تبويبات قسم قلب اللوز -->
+        <div class="filter-bar" style="margin-bottom:18px">
+          <button class="filter-btn active" onclick="switchAlmondTab('transactions',this)">📋 المعاملات</button>
+          <button class="filter-btn" onclick="switchAlmondTab('recipes',this)">🧪 وصفات قلب اللوز</button>
         </div>
 
-        <div class="card">
-          <div class="flex-between" style="margin-bottom:14px">
-            <input type="text" id="almondSearchInput" placeholder="🔍 بحث باسم الزبون..." oninput="renderAlmond()" style="flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--cream-dark);border-radius:10px;font-family:'Cairo',sans-serif;font-size:13.5px;background:var(--cream)">
+        <!-- تبويب المعاملات -->
+        <div id="almondTabTransactions">
+          <div class="stats-grid" id="almondStatsGrid"></div>
+
+          <!-- مؤشر حالة المخزون -->
+          <div class="card" id="almondStockIndicator" style="display:none">
+            <div class="card-title">📦 حالة المخزون للوصفة المختارة</div>
+            <div id="almondStockIndicatorBody"></div>
           </div>
-          <div class="filter-bar" style="margin-bottom:0">
-            <button class="filter-btn active" data-almf="all" onclick="filterAlmond('all',this)">الكل</button>
-            <button class="filter-btn" data-almf="debt" onclick="filterAlmond('debt',this)">💸 عليه دين</button>
-            <button class="filter-btn" data-almf="paid" onclick="filterAlmond('paid',this)">✅ مدفوع بالكامل</button>
-            <button class="filter-btn" data-almf="trays" onclick="filterAlmond('trays',this)">📦 صواني متبقية عنده</button>
+
+          <div class="flex-between mb-20">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <label style="font-weight:700;font-size:14px">الوصفة المستخدمة:</label>
+              <select id="almondRecipeSelect" onchange="checkAlmondStock()" style="padding:8px 12px;border:2px solid var(--cream-dark);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;background:var(--cream)">
+                <option value="">-- اختر وصفة --</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="openAlmondModal()">➕ معاملة جديدة</button>
+          </div>
+
+          <div class="card">
+            <div class="flex-between" style="margin-bottom:14px">
+              <input type="text" id="almondSearchInput" placeholder="🔍 بحث باسم الزبون..." oninput="renderAlmond()" style="flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--cream-dark);border-radius:10px;font-family:'Cairo',sans-serif;font-size:13.5px;background:var(--cream)">
+            </div>
+            <div class="filter-bar" style="margin-bottom:0">
+              <button class="filter-btn active" data-almf="all" onclick="filterAlmond('all',this)">الكل</button>
+              <button class="filter-btn" data-almf="debt" onclick="filterAlmond('debt',this)">💸 عليه دين</button>
+              <button class="filter-btn" data-almf="paid" onclick="filterAlmond('paid',this)">✅ مدفوع بالكامل</button>
+              <button class="filter-btn" data-almf="trays" onclick="filterAlmond('trays',this)">📦 صواني متبقية عنده</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📋 إدارة ديون وصواني الزبائن</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الزبون</th><th>الهاتف</th>
+                    <th>إجمالي الدين المتبقي</th>
+                    <th>إجمالي الصواني المتبقية</th>
+                    <th>تفاصيل الصواني حسب النوع</th>
+                    <th>الحالة</th><th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="almondTable"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">📋 إدارة ديون وصواني الزبائن</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الزبون</th><th>الهاتف</th>
-                  <th>إجمالي الدين المتبقي</th>
-                  <th>إجمالي الصواني المتبقية</th>
-                  <th>تفاصيل الصواني حسب النوع</th>
-                  <th>الحالة</th><th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody id="almondTable"></tbody>
-            </table>
+        <!-- تبويب وصفات قلب اللوز -->
+        <div id="almondTabRecipes" style="display:none">
+          <div class="flex-between mb-20">
+            <p style="color:#5C4A3A;font-size:14px">كل وصفة تحدد مقادير صينية واحدة. عند تسجيل طلبية، تُخصم هذه المقادير تلقائياً من المخزون.</p>
+            <button class="btn btn-primary" onclick="openAlmondRecipeModal()">➕ وصفة جديدة</button>
+          </div>
+          <div id="almondRecipesList">
+            <div class="empty-state"><div class="empty-icon">🧪</div>لا توجد وصفات بعد — أضف وصفة للبدء</div>
           </div>
         </div>
       </div>
@@ -1341,6 +1372,84 @@
 </div><!-- /app-shell -->
 
 <!-- ===== MODALS ===== -->
+
+<!-- مودال وصفة قلب اللوز الجديدة -->
+<div class="modal-overlay" id="almondRecipeModal">
+  <div class="modal-content" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="almondRecipeModalTitle">🧪 وصفة قلب اللوز جديدة</div>
+      <button class="modal-close" onclick="closeModal('almondRecipeModal')">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>اسم الوصفة</label>
+          <input type="text" id="arlName" placeholder="مثال: قلب اللوز سادة">
+        </div>
+        <div class="form-group">
+          <label>مقاس الصينية</label>
+          <select id="arlTraySize">
+            <option value="بلاط 40/60 سم">بلاط 40/60 سم</option>
+            <option value="بلاط 30/40 سم">بلاط 30/40 سم</option>
+            <option value="سينية دائرية">سينية دائرية</option>
+            <option value="مقاس مخصص">مقاس مخصص</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:12px">🧺 مقادير الصينية الواحدة (من المخزون)</div>
+      <div class="form-hint" style="margin-bottom:12px">كل مادة تُخصم بهذه الكمية تلقائياً من المخزون عند تسجيل طلبية صينية.</div>
+      <div id="arlIngredients"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addArlIngredient()" style="margin-top:8px">➕ إضافة مادة من المخزون</button>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:12px">💸 تكاليف إضافية ثابتة لكل صينية</div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>تغليف (دج)</label>
+          <input type="number" id="arlPackaging" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>غاز/كهرباء (دج)</label>
+          <input type="number" id="arlEnergy" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>عسل/إضافات (دج)</label>
+          <input type="number" id="arlHoney" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>تكاليف أخرى (دج)</label>
+          <input type="number" id="arlOther" value="0" oninput="calcArlPreview()">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:12px">💰 سعر البيع</div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>سعر بيع الصينية (دج)</label>
+          <input type="number" id="arlSalePrice" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>ملاحظات</label>
+          <input type="text" id="arlNotes" placeholder="ملاحظات اختيارية">
+        </div>
+      </div>
+
+      <!-- معاينة التكلفة والربح -->
+      <div id="arlPreview" style="background:var(--cream);border-radius:12px;padding:14px;margin-top:14px;display:none">
+        <div class="card-title" style="margin-bottom:8px">📊 معاينة التكلفة والربح</div>
+        <div id="arlPreviewBody"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('almondRecipeModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveAlmondRecipe()">💾 حفظ الوصفة</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- Product Modal -->
 <div class="modal-overlay" id="productModal">
@@ -1756,9 +1865,9 @@
     <div id="almondUpdateInfo" class="info-banner"></div>
 
     <div class="tabs">
-      <div class="tab active" id="tabPay" onclick="switchAlmondTab('pay')">💵 تسجيل دفعة</div>
-      <div class="tab" id="tabReturn" onclick="switchAlmondTab('return')">↩️ رجوع صواني</div>
-      <div class="tab" id="tabEdit" onclick="switchAlmondTab('edit')">⚙️ تعديل يدوي</div>
+      <div class="tab active" id="tabPay" onclick="switchAlmondUpdateTab('pay')">💵 تسجيل دفعة</div>
+      <div class="tab" id="tabReturn" onclick="switchAlmondUpdateTab('return')">↩️ رجوع صواني</div>
+      <div class="tab" id="tabEdit" onclick="switchAlmondUpdateTab('edit')">⚙️ تعديل يدوي</div>
     </div>
 
     <!-- Pay tab -->
@@ -1974,6 +2083,7 @@ function ensureDataShape() {
   if (!data.almond) data.almond = [];
   if (!data.customers) data.customers = [];
   if (!data.profits) data.profits = [];
+  if (!data.almondRecipes) data.almondRecipes = [];
   if (!data.settings) data.settings = { storeWhatsapp:'', storeName:'Amina Délice' };
 }
 
@@ -3602,12 +3712,31 @@ function addExternalIngredientRow(prefill) {
       <option>غ</option><option>مل</option><option>حبة</option><option>كغ</option><option>لتر</option>
     </select>
     <button onclick="document.getElementById('ingRow-${rowId}').remove()" style="background:#FEE2E2;border:none;border-radius:8px;padding:8px;cursor:pointer">✕</button>
-    <input type="number" id="ingExtCost-${rowId}" placeholder="تكلفة الوحدة (دج) — اختياري" value="${prefill?(prefill.unitCost||''):''}" style="grid-column:span 3;margin-top:6px" oninput="updateExtIngRowPrice(${rowId})">
+    <input type="number" id="ingExtCost-${rowId}" placeholder="تكلفة الوحدة (دج) — اختياري" value="${prefill?(prefill.unitCost||''):''}" style="grid-column:span 2;margin-top:6px" oninput="updateExtIngRowPrice(${rowId})">
+    <button onclick="addExtIngToInventory(${rowId})" title="أضف هذه المادة للمخزون الآن" style="margin-top:6px;background:var(--grad-green);color:white;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;font-family:'Cairo',sans-serif;font-weight:700">➕ أضف للمخزون</button>
     <div id="ingPrice-${rowId}" style="grid-column:span 3;font-size:12px;color:var(--gold-dark);font-weight:700;margin-top:2px"></div>
   `;
   document.getElementById('recipeIngredients').appendChild(div);
   if (prefill && prefill.unit) div.querySelector('#ingUnit-'+rowId).value = prefill.unit;
   updateExtIngRowPrice(rowId);
+}
+
+// Opens the inventory modal pre-filled with the ingredient's name, so the user can add it
+// to the stock without leaving the recipe form — after saving, the ingredient becomes
+// available in the normal (non-external) dropdown for future recipes.
+function addExtIngToInventory(rowId) {
+  const name = document.getElementById('ingExtName-'+rowId)?.value?.trim();
+  if (!name) return alert('اكتب اسم المكون أولاً قبل إضافته للمخزون');
+
+  // Open the inventory modal and pre-fill the name field
+  openInventoryModal();
+  setTimeout(() => {
+    const nameField = document.getElementById('invName');
+    if (nameField) {
+      nameField.value = name;
+      nameField.focus();
+    }
+  }, 120); // small delay to let the modal finish rendering before writing to it
 }
 
 function updateExtIngRowPrice(rowId) {
@@ -4245,7 +4374,23 @@ function saveAlmond() {
   }
   const trayType = document.getElementById('almTrayType').value;
 
+  // Check if a recipe is selected — if so, check stock and deduct automatically
+  const recipeId = document.getElementById('almondRecipeSelect')?.value;
+  const recipe = recipeId ? (data.almondRecipes||[]).find(r=>r.id==recipeId) : null;
   const remainingPlates = plates - returnedNow;
+
+  if (recipe) {
+    const stockStatus = checkRecipeStock(recipe, remainingPlates);
+    if (!stockStatus.ok) {
+      const proceed = confirm(
+        `⚠️ تحذير: المواد الخام غير كافية في المخزون لإنتاج ${remainingPlates} صينية:\n\n` +
+        stockStatus.issues.join('\n') +
+        '\n\nهل تريد المتابعة على أي حال؟'
+      );
+      if (!proceed) return;
+    }
+  }
+
   const total = remainingPlates * price;
   const totalCost = remainingPlates * costPerPlate;
   const remaining = Math.max(0, total - paid);
@@ -4261,10 +4406,16 @@ function saveAlmond() {
     costPerPlate,
     total, totalCost, paid,
     remaining,
+    recipeId: recipeId || null,
     notes: document.getElementById('almNotes').value,
     date: new Date().toISOString(),
     status: remaining<=0 ? 'مكتمل' : 'جزئي'
   });
+
+  // Deduct raw materials from inventory automatically based on the selected recipe
+  if (recipe) {
+    deductAlmondRecipeFromStock(recipeId, remainingPlates);
+  }
 
   saveData();
   closeModal('almondModal');
@@ -4284,6 +4435,10 @@ function getCustomerById(id) {
 }
 
 function renderAlmond() {
+  // Populate recipe dropdown and refresh stock indicator
+  populateAlmondRecipeSelect();
+  checkAlmondStock();
+
   const tbody = document.getElementById('almondTable');
   const searchTerm = (document.getElementById('almondSearchInput')?.value || '').trim().toLowerCase();
 
@@ -4485,11 +4640,11 @@ function openAlmondUpdate(id) {
   document.getElementById('almEditTrayType').value=a.trayType||'بلاط 40/60';
   document.getElementById('almEditNotes').value=a.notes||'';
 
-  switchAlmondTab('pay');
+  switchAlmondUpdateTab('pay');
   document.getElementById('almondUpdateModal').classList.add('show');
 }
 
-function switchAlmondTab(tab) {
+function switchAlmondUpdateTab(tab) {
   currentAlmondTab = tab;
   document.getElementById('tabPay').classList.toggle('active', tab==='pay');
   document.getElementById('tabReturn').classList.toggle('active', tab==='return');
@@ -4879,6 +5034,346 @@ checkUrgentOrdersOnLoad();
 // the browser/restarting the device, but this guarantees one final save attempt right before
 // the page actually unloads (closing the tab, navigating away, shutting down), covering any
 // edge case where a change happened without going through saveData() for some reason.
+// ===================== ALMOND RECIPES SYSTEM =====================
+
+function switchAlmondTab(tab, btn) {
+  document.getElementById('almondTabTransactions').style.display = tab==='transactions' ? '' : 'none';
+  document.getElementById('almondTabRecipes').style.display = tab==='recipes' ? '' : 'none';
+  document.querySelectorAll('#page-almond .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab==='recipes') renderAlmondRecipes();
+  if (tab==='transactions') populateAlmondRecipeSelect();
+}
+
+// Populate the recipe dropdown in the transactions tab
+function populateAlmondRecipeSelect() {
+  const sel = document.getElementById('almondRecipeSelect');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">-- اختر وصفة (لحساب التكلفة ومؤشر المخزون) --</option>';
+  (data.almondRecipes || []).forEach(r => {
+    sel.add(new Option(r.name + ' — ' + r.traySize, r.id));
+  });
+  if (current) sel.value = current;
+}
+
+// Open modal for a new or existing almond recipe
+let editingAlmondRecipeId = null;
+function openAlmondRecipeModal(id) {
+  editingAlmondRecipeId = id || null;
+  const r = id ? (data.almondRecipes||[]).find(x=>x.id==id) : null;
+  document.getElementById('almondRecipeModalTitle').textContent = r ? '✏️ تعديل الوصفة' : '🧪 وصفة قلب اللوز جديدة';
+  document.getElementById('arlName').value = r?.name || '';
+  document.getElementById('arlTraySize').value = r?.traySize || 'بلاط 40/60 سم';
+  document.getElementById('arlPackaging').value = r?.extraCosts?.packaging || 0;
+  document.getElementById('arlEnergy').value = r?.extraCosts?.energy || 0;
+  document.getElementById('arlHoney').value = r?.extraCosts?.honey || 0;
+  document.getElementById('arlOther').value = r?.extraCosts?.other || 0;
+  document.getElementById('arlSalePrice').value = r?.salePrice || 0;
+  document.getElementById('arlNotes').value = r?.notes || '';
+
+  // Rebuild ingredient rows
+  document.getElementById('arlIngredients').innerHTML = '';
+  const ings = r?.ingredients || [];
+  if (ings.length > 0) {
+    ings.forEach(ing => addArlIngredient(ing));
+  } else {
+    addArlIngredient(); // start with one empty row
+  }
+  calcArlPreview();
+  openModal('almondRecipeModal');
+}
+
+function addArlIngredient(prefill) {
+  const rowId = Date.now() + Math.floor(Math.random()*1000);
+  const invOptions = data.inventory.map(i =>
+    `<option value="${i.id}" ${prefill?.invId==i.id?'selected':''}>${escapeHtml(i.name)} (${i.type})</option>`
+  ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'ingredient-row'; div.id = 'arlRow-'+rowId;
+  div.innerHTML = `
+    <select id="arlInv-${rowId}" onchange="updateArlUnit(${rowId})">
+      <option value="">-- اختر مادة --</option>${invOptions}
+    </select>
+    <input type="number" id="arlQty-${rowId}" placeholder="الكمية" value="${prefill?.qty||''}" oninput="calcArlPreview()">
+    <select id="arlUnit-${rowId}" onchange="calcArlPreview()">
+      <option>غ</option><option>كغ</option><option>مل</option><option>لتر</option><option>حبة</option>
+    </select>
+    <button onclick="document.getElementById('arlRow-${rowId}').remove();calcArlPreview()" style="background:#FEE2E2;border:none;border-radius:8px;padding:8px;cursor:pointer">✕</button>
+    <div id="arlIngCost-${rowId}" style="grid-column:span 4;font-size:12px;color:var(--gold-dark);font-weight:700;margin-top:2px"></div>
+  `;
+  document.getElementById('arlIngredients').appendChild(div);
+  if (prefill?.unit) document.getElementById('arlUnit-'+rowId).value = prefill.unit;
+  if (prefill?.invId) updateArlUnit(rowId);
+}
+
+function updateArlUnit(rowId) {
+  const invId = document.getElementById('arlInv-'+rowId)?.value;
+  const inv = data.inventory.find(i=>i.id==invId);
+  const unitSel = document.getElementById('arlUnit-'+rowId);
+  if (inv && unitSel) {
+    if (inv.type==='سائل') unitSel.innerHTML = '<option>مل</option><option>لتر</option>';
+    else if (inv.type==='حبة') unitSel.innerHTML = '<option>حبة</option>';
+    else unitSel.innerHTML = '<option>غ</option><option>كغ</option>';
+  }
+  calcArlPreview();
+}
+
+// Collect all ingredient rows from the recipe modal
+function collectArlIngredients() {
+  const rows = document.querySelectorAll('[id^="arlRow-"]');
+  return Array.from(rows).map(row => {
+    const rowId = row.id.replace('arlRow-','');
+    const invId = document.getElementById('arlInv-'+rowId)?.value;
+    const qty = parseFloat(document.getElementById('arlQty-'+rowId)?.value)||0;
+    const unit = document.getElementById('arlUnit-'+rowId)?.value||'غ';
+    return { invId, qty, unit };
+  }).filter(x => x.invId && x.qty>0);
+}
+
+// Calculate ingredient cost from inventory prices (with unit conversion)
+function calcIngredientLineCost(invId, qty, unit) {
+  const inv = data.inventory.find(i=>i.id==invId);
+  if (!inv) return 0;
+  let q = qty;
+  let pricePerSmall;
+  if (inv.type==='سائل') {
+    pricePerSmall = (inv.pricePerLiter||0)/1000; // per ml
+    if (unit==='لتر') q = qty*1000;
+  } else if (inv.type==='وزن') {
+    pricePerSmall = (inv.pricePerKg||0)/1000; // per g
+    if (unit==='كغ') q = qty*1000;
+  } else {
+    pricePerSmall = inv.pricePerUnit||0;
+  }
+  return pricePerSmall * q;
+}
+
+// Convert qty+unit to inventory stock unit (كغ for وزن, لتر for سائل, حبة for حبة)
+function convertToStockUnit(qty, unit, invType) {
+  if (invType==='وزن') return unit==='كغ' ? qty : qty/1000;
+  if (invType==='سائل') return unit==='لتر' ? qty : qty/1000;
+  return qty;
+}
+
+// Live preview of cost & profit in the recipe modal
+function calcArlPreview() {
+  const ings = collectArlIngredients();
+  let ingCost = 0;
+  // Update per-ingredient cost display
+  document.querySelectorAll('[id^="arlRow-"]').forEach(row => {
+    const rowId = row.id.replace('arlRow-','');
+    const invId = document.getElementById('arlInv-'+rowId)?.value;
+    const qty = parseFloat(document.getElementById('arlQty-'+rowId)?.value)||0;
+    const unit = document.getElementById('arlUnit-'+rowId)?.value||'غ';
+    const costEl = document.getElementById('arlIngCost-'+rowId);
+    if (costEl && invId && qty>0) {
+      const c = calcIngredientLineCost(invId, qty, unit);
+      costEl.textContent = `💰 تكلفة هذه المادة: ${qty} ${unit} ≈ ${c.toFixed(2)} دج`;
+      ingCost += c;
+    } else if (costEl) { costEl.textContent = ''; }
+  });
+
+  const packaging = parseFloat(document.getElementById('arlPackaging')?.value)||0;
+  const energy = parseFloat(document.getElementById('arlEnergy')?.value)||0;
+  const honey = parseFloat(document.getElementById('arlHoney')?.value)||0;
+  const other = parseFloat(document.getElementById('arlOther')?.value)||0;
+  const extraTotal = packaging + energy + honey + other;
+  const totalCost = ingCost + extraTotal;
+  const salePrice = parseFloat(document.getElementById('arlSalePrice')?.value)||0;
+  const profit = salePrice - totalCost;
+
+  const preview = document.getElementById('arlPreview');
+  const body = document.getElementById('arlPreviewBody');
+  if (ings.length > 0) {
+    preview.style.display = '';
+    body.innerHTML = `
+      <div class="flex-between" style="margin-bottom:5px"><span>🧺 تكلفة المواد الخام</span><strong>${ingCost.toFixed(2)} دج</strong></div>
+      <div class="flex-between" style="margin-bottom:5px"><span>💸 تكاليف إضافية ثابتة</span><strong>${extraTotal.toFixed(2)} دج</strong></div>
+      <div class="flex-between" style="margin-bottom:5px;font-weight:700;border-top:1px solid var(--cream-dark);padding-top:6px"><span>💰 التكلفة الإجمالية للصينية</span><strong>${totalCost.toFixed(2)} دج</strong></div>
+      <div class="flex-between" style="padding-top:6px;border-top:2px solid var(--cream-dark)"><span>📈 الربح الصافي للصينية</span>
+        <strong style="color:${profit>=0?'#2E7D32':'#C62828'};font-size:16px">${profit.toFixed(2)} دج</strong>
+      </div>`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function saveAlmondRecipe() {
+  const name = document.getElementById('arlName').value.trim();
+  if (!name) return alert('أدخل اسم الوصفة');
+  const ings = collectArlIngredients();
+  if (ings.length===0) return alert('أضف مادة واحدة على الأقل من المخزون');
+
+  const recipe = {
+    id: editingAlmondRecipeId || Date.now(),
+    name,
+    traySize: document.getElementById('arlTraySize').value,
+    ingredients: ings,
+    extraCosts: {
+      packaging: parseFloat(document.getElementById('arlPackaging').value)||0,
+      energy: parseFloat(document.getElementById('arlEnergy').value)||0,
+      honey: parseFloat(document.getElementById('arlHoney').value)||0,
+      other: parseFloat(document.getElementById('arlOther').value)||0,
+    },
+    salePrice: parseFloat(document.getElementById('arlSalePrice').value)||0,
+    notes: document.getElementById('arlNotes').value,
+  };
+
+  if (!data.almondRecipes) data.almondRecipes = [];
+  const idx = data.almondRecipes.findIndex(x=>x.id==recipe.id);
+  if (idx>=0) data.almondRecipes[idx] = recipe;
+  else data.almondRecipes.push(recipe);
+
+  saveData();
+  closeModal('almondRecipeModal');
+  renderAlmondRecipes();
+  populateAlmondRecipeSelect();
+}
+
+function renderAlmondRecipes() {
+  const container = document.getElementById('almondRecipesList');
+  if (!container) return;
+  const recipes = data.almondRecipes || [];
+  if (!recipes.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🧪</div>لا توجد وصفات بعد — أضف وصفة للبدء</div>';
+    return;
+  }
+  container.innerHTML = recipes.map(r => {
+    const ingCost = r.ingredients.reduce((s,ing)=>s+calcIngredientLineCost(ing.invId,ing.qty,ing.unit),0);
+    const extraTotal = Object.values(r.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
+    const totalCost = ingCost + extraTotal;
+    const profit = (r.salePrice||0) - totalCost;
+    const stockStatus = checkRecipeStock(r);
+    return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="flex-between" style="align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <strong style="font-size:16px">🧪 ${escapeHtml(r.name)}</strong>
+          <span class="tag tag-gold" style="margin-right:8px">${r.traySize}</span>
+          <div style="margin-top:8px;font-size:13px;color:#5C4A3A">
+            ${r.ingredients.map(ing=>{
+              const inv = data.inventory.find(i=>i.id==ing.invId);
+              return inv ? `<span style="margin-left:8px">• ${escapeHtml(inv.name)}: ${ing.qty} ${ing.unit}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="openAlmondRecipeModal(${r.id})">✏️ تعديل</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAlmondRecipe(${r.id})">🗑️</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
+        <div style="background:var(--cream);padding:10px;border-radius:10px;text-align:center">
+          <div style="font-size:11px;color:#6B5C4F">تكلفة المواد</div>
+          <strong>${ingCost.toFixed(0)} دج</strong>
+        </div>
+        <div style="background:var(--cream);padding:10px;border-radius:10px;text-align:center">
+          <div style="font-size:11px;color:#6B5C4F">التكلفة الإجمالية</div>
+          <strong>${totalCost.toFixed(0)} دج</strong>
+        </div>
+        <div style="background:${profit>=0?'#E8F5E9':'#FFEBEE'};padding:10px;border-radius:10px;text-align:center">
+          <div style="font-size:11px;color:#6B5C4F">الربح للصينية</div>
+          <strong style="color:${profit>=0?'#2E7D32':'#C62828'}">${profit.toFixed(0)} دج</strong>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px;border-radius:10px;background:${stockStatus.ok?'#E8F5E9':'#FFF3E0'}">
+        <strong style="font-size:13px;color:${stockStatus.ok?'#2E7D32':'#E65100'}">
+          ${stockStatus.ok ? '✅ المواد كافية في المخزون' : '⚠️ تحذير: مواد غير كافية'}
+        </strong>
+        ${stockStatus.issues.length ? '<div style="font-size:12px;margin-top:4px">'+stockStatus.issues.map(i=>`• ${i}`).join('<br>')+'</div>' : ''}
+      </div>
+      ${r.salePrice ? `<div style="margin-top:8px;font-size:13px;color:#5C4A3A">سعر البيع: <strong>${r.salePrice} دج</strong></div>` : ''}
+      ${r.notes ? `<div style="font-size:12px;color:#7A6B5C;margin-top:4px">📝 ${escapeHtml(r.notes)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Check if stock has enough materials for N trays of a recipe (default: 1)
+function checkRecipeStock(recipe, numTrays) {
+  numTrays = numTrays || 1;
+  const issues = [];
+  let ok = true;
+  (recipe.ingredients||[]).forEach(ing => {
+    const inv = data.inventory.find(i=>i.id==ing.invId);
+    if (!inv) { issues.push(`مادة غير موجودة في المخزون (تحقق من الوصفة)`); ok=false; return; }
+    const needed = convertToStockUnit(ing.qty * numTrays, ing.unit, inv.type);
+    const available = convertToStockUnit(inv.qty||0, inv.unit, inv.type);
+    if (available < needed) {
+      const neededDisplay = ing.qty * numTrays + ' ' + ing.unit;
+      const availDisplay = inv.qty + ' ' + inv.unit;
+      issues.push(`${inv.name}: تحتاج ${neededDisplay} — متوفر ${availDisplay}`);
+      ok = false;
+    }
+  });
+  return { ok, issues };
+}
+
+// Called when recipe dropdown changes in transactions tab — shows stock indicator
+function checkAlmondStock() {
+  const recipeId = document.getElementById('almondRecipeSelect')?.value;
+  const card = document.getElementById('almondStockIndicator');
+  const body = document.getElementById('almondStockIndicatorBody');
+  if (!recipeId || !card || !body) { if(card) card.style.display='none'; return; }
+  const recipe = (data.almondRecipes||[]).find(r=>r.id==recipeId);
+  if (!recipe) { card.style.display='none'; return; }
+
+  // How many trays needed? Ask for 1 by default, will be updated when user sets qty in modal
+  const status = checkRecipeStock(recipe, 1);
+  const ingCost = recipe.ingredients.reduce((s,ing)=>s+calcIngredientLineCost(ing.invId,ing.qty,ing.unit),0);
+  const extraTotal = Object.values(recipe.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
+  const totalCost = ingCost + extraTotal;
+  const profit = (recipe.salePrice||0) - totalCost;
+
+  card.style.display = '';
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-size:14px;font-weight:700;color:${status.ok?'#2E7D32':'#E65100'}">
+        ${status.ok ? '✅ المواد كافية لصينية واحدة' : '⚠️ مواد غير كافية لصينية واحدة'}
+      </span>
+    </div>
+    ${status.issues.length ? `<div style="background:#FFF3E0;padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px">${status.issues.map(i=>`• ${i}`).join('<br>')}</div>` : ''}
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
+      <span>📐 المقاس: <strong>${recipe.traySize}</strong></span>
+      <span>💰 تكلفة الصينية: <strong>${totalCost.toFixed(0)} دج</strong></span>
+      <span>📈 الربح المتوقع: <strong style="color:${profit>=0?'#2E7D32':'#C62828'}">${profit.toFixed(0)} دج</strong></span>
+    </div>`;
+}
+
+function deleteAlmondRecipe(id) {
+  confirmAction('هل تريد حذف هذه الوصفة؟ لا يمكن التراجع عن هذا الإجراء.', () => {
+    data.almondRecipes = (data.almondRecipes||[]).filter(r=>r.id!=id);
+    saveData();
+    renderAlmondRecipes();
+    populateAlmondRecipeSelect();
+  });
+}
+
+// Called from saveAlmond() — deducts ingredients from inventory based on recipe × numTrays
+function deductAlmondRecipeFromStock(recipeId, numTrays) {
+  if (!recipeId || !numTrays) return;
+  const recipe = (data.almondRecipes||[]).find(r=>r.id==recipeId);
+  if (!recipe) return;
+  recipe.ingredients.forEach(ing => {
+    const inv = data.inventory.find(i=>i.id==ing.invId);
+    if (!inv) return;
+    const needed = convertToStockUnit(ing.qty * numTrays, ing.unit, inv.type);
+    // inventory quantities are kept in the stock's own unit (inv.unit),
+    // so convert needed back from stock-base-unit to inv.unit for display/arithmetic
+    if (inv.type==='وزن') {
+      // inv.qty is in inv.unit (غ or كغ) — needed is in كغ
+      const neededInInvUnit = inv.unit==='كغ' ? needed : needed*1000;
+      inv.qty = Math.max(0, (inv.qty||0) - neededInInvUnit);
+    } else if (inv.type==='سائل') {
+      const neededInInvUnit = inv.unit==='لتر' ? needed : needed*1000;
+      inv.qty = Math.max(0, (inv.qty||0) - neededInInvUnit);
+    } else {
+      inv.qty = Math.max(0, (inv.qty||0) - needed);
+    }
+  });
+}
+
 window.addEventListener('beforeunload', () => {
   try { localStorage.setItem('aminaDelice', JSON.stringify(data)); } catch(e) {}
 });
