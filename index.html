@@ -550,6 +550,36 @@
     padding: 8px;
     border-radius: 10px;
   }
+
+  /* Almond recipe ingredient rows — separate layout to avoid clash with recipe modal rows */
+  .arl-row {
+    display: grid;
+    grid-template-columns: 2fr 80px 80px auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    background: var(--cream);
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .arl-row .arl-cost {
+    grid-column: span 4;
+    font-size: 12px;
+    color: var(--gold-dark);
+    font-weight: 700;
+    margin-top: -2px;
+  }
+  .arl-row select, .arl-row input {
+    padding: 8px 10px;
+    border: 2px solid var(--cream-dark);
+    border-radius: 8px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brown);
+    background: white;
+    width: 100%;
+  }
   .ingredient-row select, .ingredient-row input {
     padding: 8px; border:2px solid var(--cream-dark); border-radius:8px;
     font-family:'Cairo',sans-serif; font-size:13px; width:100%;
@@ -1374,7 +1404,7 @@
 <!-- ===== MODALS ===== -->
 
 <!-- مودال وصفة قلب اللوز الجديدة -->
-<div class="modal-overlay" id="almondRecipeModal">
+<div class="modal-overlay" id="almondRecipeModal" style="z-index:1100">
   <div class="modal-content" style="max-width:560px">
     <div class="modal-header">
       <div class="modal-title" id="almondRecipeModalTitle">🧪 وصفة قلب اللوز جديدة</div>
@@ -5091,21 +5121,23 @@ function addArlIngredient(prefill) {
   ).join('');
 
   const div = document.createElement('div');
-  div.className = 'ingredient-row'; div.id = 'arlRow-'+rowId;
+  div.className = 'arl-row';
+  div.id = 'arlRow-'+rowId;
   div.innerHTML = `
     <select id="arlInv-${rowId}" onchange="updateArlUnit(${rowId})">
-      <option value="">-- اختر مادة --</option>${invOptions}
+      <option value="">-- اختر مادة من المخزون --</option>${invOptions}
     </select>
     <input type="number" id="arlQty-${rowId}" placeholder="الكمية" value="${prefill?.qty||''}" oninput="calcArlPreview()">
     <select id="arlUnit-${rowId}" onchange="calcArlPreview()">
       <option>غ</option><option>كغ</option><option>مل</option><option>لتر</option><option>حبة</option>
     </select>
-    <button onclick="document.getElementById('arlRow-${rowId}').remove();calcArlPreview()" style="background:#FEE2E2;border:none;border-radius:8px;padding:8px;cursor:pointer">✕</button>
-    <div id="arlIngCost-${rowId}" style="grid-column:span 4;font-size:12px;color:var(--gold-dark);font-weight:700;margin-top:2px"></div>
+    <button onclick="document.getElementById('arlRow-${rowId}').remove();calcArlPreview()" style="background:#FEE2E2;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:14px">✕</button>
+    <div class="arl-cost" id="arlIngCost-${rowId}"></div>
   `;
   document.getElementById('arlIngredients').appendChild(div);
   if (prefill?.unit) document.getElementById('arlUnit-'+rowId).value = prefill.unit;
   if (prefill?.invId) updateArlUnit(rowId);
+  calcArlPreview();
 }
 
 function updateArlUnit(rowId) {
