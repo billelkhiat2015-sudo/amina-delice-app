@@ -1404,81 +1404,7 @@
 <!-- ===== MODALS ===== -->
 
 <!-- مودال وصفة قلب اللوز الجديدة -->
-<div class="modal-overlay" id="almondRecipeModal" style="z-index:1100">
-  <div class="modal-content" style="max-width:560px">
-    <div class="modal-header">
-      <div class="modal-title" id="almondRecipeModalTitle">🧪 وصفة قلب اللوز جديدة</div>
-      <button class="modal-close" onclick="closeModal('almondRecipeModal')">✕</button>
-    </div>
-    <div style="padding:20px">
-      <div class="form-grid form-grid-2">
-        <div class="form-group">
-          <label>اسم الوصفة</label>
-          <input type="text" id="arlName" placeholder="مثال: قلب اللوز سادة">
-        </div>
-        <div class="form-group">
-          <label>مقاس الصينية</label>
-          <select id="arlTraySize">
-            <option value="بلاط 40/60 سم">بلاط 40/60 سم</option>
-            <option value="بلاط 30/40 سم">بلاط 30/40 سم</option>
-            <option value="سينية دائرية">سينية دائرية</option>
-            <option value="مقاس مخصص">مقاس مخصص</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="divider"></div>
-      <div class="card-title" style="margin-bottom:12px">🧺 مقادير الصينية الواحدة (من المخزون)</div>
-      <div class="form-hint" style="margin-bottom:12px">كل مادة تُخصم بهذه الكمية تلقائياً من المخزون عند تسجيل طلبية صينية.</div>
-      <div id="arlIngredients"></div>
-      <button class="btn btn-secondary btn-sm" onclick="addArlIngredient()" style="margin-top:8px">➕ إضافة مادة من المخزون</button>
-
-      <div class="divider"></div>
-      <div class="card-title" style="margin-bottom:12px">💸 تكاليف إضافية ثابتة لكل صينية</div>
-      <div class="form-grid form-grid-2">
-        <div class="form-group">
-          <label>تغليف (دج)</label>
-          <input type="number" id="arlPackaging" value="0" oninput="calcArlPreview()">
-        </div>
-        <div class="form-group">
-          <label>غاز/كهرباء (دج)</label>
-          <input type="number" id="arlEnergy" value="0" oninput="calcArlPreview()">
-        </div>
-        <div class="form-group">
-          <label>عسل/إضافات (دج)</label>
-          <input type="number" id="arlHoney" value="0" oninput="calcArlPreview()">
-        </div>
-        <div class="form-group">
-          <label>تكاليف أخرى (دج)</label>
-          <input type="number" id="arlOther" value="0" oninput="calcArlPreview()">
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="card-title" style="margin-bottom:12px">💰 سعر البيع</div>
-      <div class="form-grid form-grid-2">
-        <div class="form-group">
-          <label>سعر بيع الصينية (دج)</label>
-          <input type="number" id="arlSalePrice" value="0" oninput="calcArlPreview()">
-        </div>
-        <div class="form-group">
-          <label>ملاحظات</label>
-          <input type="text" id="arlNotes" placeholder="ملاحظات اختيارية">
-        </div>
-      </div>
-
-      <!-- معاينة التكلفة والربح -->
-      <div id="arlPreview" style="background:var(--cream);border-radius:12px;padding:14px;margin-top:14px;display:none">
-        <div class="card-title" style="margin-bottom:8px">📊 معاينة التكلفة والربح</div>
-        <div id="arlPreviewBody"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('almondRecipeModal')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveAlmondRecipe()">💾 حفظ الوصفة</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- Product Modal -->
@@ -5425,5 +5351,81 @@ function checkUrgentOrdersOnLoad() {
   }, 800); // small delay so it doesn't fire before data/UI are fully ready
 }
 </script>
+<!-- مودال وصفة قلب اللوز — placed at top-level body so it sits above ALL other stacking contexts -->
+<div class="modal-overlay" id="almondRecipeModal">
+  <div class="modal-content" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="almondRecipeModalTitle">🧪 وصفة قلب اللوز جديدة</div>
+      <button class="modal-close" onclick="closeModal('almondRecipeModal')">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>اسم الوصفة</label>
+          <input type="text" id="arlName" placeholder="مثال: قلب اللوز سادة">
+        </div>
+        <div class="form-group">
+          <label>مقاس الصينية</label>
+          <select id="arlTraySize">
+            <option value="بلاط 40/60 سم">بلاط 40/60 سم</option>
+            <option value="بلاط 30/40 سم">بلاط 30/40 سم</option>
+            <option value="سينية دائرية">سينية دائرية</option>
+            <option value="مقاس مخصص">مقاس مخصص</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:8px">🧺 مقادير الصينية الواحدة (من المخزون)</div>
+      <div class="form-hint" style="margin-bottom:10px">كل مادة تُخصم بهذه الكمية تلقائياً من المخزون عند تسجيل طلبية صينية.</div>
+      <div id="arlIngredients"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addArlIngredient()" style="margin-top:8px">➕ إضافة مادة من المخزون</button>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:8px">💸 تكاليف إضافية ثابتة لكل صينية</div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>تغليف (دج)</label>
+          <input type="number" id="arlPackaging" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>غاز/كهرباء (دج)</label>
+          <input type="number" id="arlEnergy" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>عسل/إضافات (دج)</label>
+          <input type="number" id="arlHoney" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>تكاليف أخرى (دج)</label>
+          <input type="number" id="arlOther" value="0" oninput="calcArlPreview()">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:8px">💰 سعر البيع</div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>سعر بيع الصينية (دج)</label>
+          <input type="number" id="arlSalePrice" value="0" oninput="calcArlPreview()">
+        </div>
+        <div class="form-group">
+          <label>ملاحظات</label>
+          <input type="text" id="arlNotes" placeholder="ملاحظات اختيارية">
+        </div>
+      </div>
+
+      <div id="arlPreview" style="background:var(--cream);border-radius:12px;padding:14px;margin-top:14px;display:none">
+        <div class="card-title" style="margin-bottom:8px">📊 معاينة التكلفة والربح</div>
+        <div id="arlPreviewBody"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('almondRecipeModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveAlmondRecipe()">💾 حفظ الوصفة</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
