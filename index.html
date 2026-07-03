@@ -1796,7 +1796,7 @@
 
       <div class="form-group">
         <label>نوع قلب اللوز</label>
-        <select id="almQalbType">
+        <select id="almQalbType" onchange="onAlmondQalbTypeChange();autoFillAlmondCost()">
           <option>قلب اللوز سادة (تقليدي)</option>
           <option>قلب اللوز محشي بالمكسرات</option>
           <option value="__other__">➕ نوع آخر...</option>
@@ -1805,9 +1805,13 @@
       </div>
       <div class="form-group">
         <label>نوع البلاط (الصينية)</label>
-        <select id="almTrayType">
+        <select id="almTrayType" onchange="autoFillAlmondCost()">
           <option>بلاط 40/60</option>
           <option>بلاط 40/30</option>
+          <option>بلاط 40/60 سم</option>
+          <option>بلاط 30/40 سم</option>
+          <option>سينية دائرية</option>
+          <option>مقاس مخصص</option>
         </select>
       </div>
 
@@ -1822,7 +1826,7 @@
       <div class="form-group">
         <label>💰 تكلفة الصينية الواحدة (دج)</label>
         <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
-        <div class="form-hint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
+        <div class="form-hint" id="almCostHint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
       </div>
 
       <div class="form-group">
@@ -4286,6 +4290,71 @@ function onAlmondQalbTypeChange() {
   document.getElementById('almQalbTypeOther').style.display = val==='__other__' ? '' : 'none';
 }
 
+// Searches almondRecipes for a recipe matching the selected type + tray size,
+// then auto-fills the cost field with the recipe's calculated total cost per tray.
+// The field stays editable — the user can override it for any specific transaction.
+function autoFillAlmondCost() {
+  const qalbType = document.getElementById('almQalbType').value;
+  const trayType = document.getElementById('almTrayType').value;
+  const costField = document.getElementById('almCostPerPlate');
+  const hint = document.getElementById('almCostHint');
+  if (!costField) return;
+
+  const recipes = data.almondRecipes || [];
+
+  // Try exact match on both name (contains qalbType) and tray size
+  let matched = recipes.find(r =>
+    r.name && r.name.includes(qalbType) &&
+    r.traySize && r.traySize.includes(trayType.replace(' سم','').replace('سم','').trim())
+  );
+
+  // Fallback: match on tray size only
+  if (!matched) {
+    matched = recipes.find(r =>
+      r.traySize && r.traySize.includes(trayType.replace(' سم','').replace('سم','').trim())
+    );
+  }
+
+  // Fallback: match on name only
+  if (!matched) {
+    matched = recipes.find(r =>
+      r.name && r.name.includes(qalbType)
+    );
+  }
+
+  if (matched) {
+    // Calculate full cost: raw ingredients + fixed extra costs
+    const ingCost = (matched.ingredients||[]).reduce((s,ing) =>
+      s + calcIngredientLineCost(ing.invId, ing.qty, ing.unit), 0
+    );
+    const extraTotal = Object.values(matched.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
+    const totalCost = ingCost + extraTotal;
+
+    costField.value = totalCost.toFixed(2);
+    costField.style.borderColor = '#2E7D32';
+    if (hint) {
+      hint.innerHTML = `✅ تم جلب التكلفة تلقائياً من وصفة: <strong>${escapeHtml(matched.name)}</strong> (${totalCost.toFixed(0)} دج) — يمكنك تعديلها يدوياً.`;
+      hint.style.color = '#2E7D32';
+    }
+
+    // Also auto-fill sale price from recipe if field is still at default (500)
+    const priceField = document.getElementById('almPricePerPlate');
+    if (priceField && matched.salePrice && parseFloat(priceField.value)===500) {
+      priceField.value = matched.salePrice;
+    }
+  } else {
+    costField.style.borderColor = '';
+    if (hint) {
+      hint.innerHTML = recipes.length > 0
+        ? `⚠️ لم يُعثر على وصفة مطابقة لهذا النوع والمقاس — يمكنك إدخال التكلفة يدوياً، أو <a href="#" onclick="switchAlmondTab('recipes',null);closeModal('almondModal');return false;" style="color:var(--gold-dark)">إضافة وصفة جديدة</a>.`
+        : `ℹ️ أضف وصفة من تبويب "🧪 وصفات قلب اللوز" لتعبئة التكلفة تلقائياً.`;
+      hint.style.color = '#9A6E1E';
+    }
+  }
+
+  calcAlmond();
+}
+
 function calcAlmond() {
   const plates = parseFloat(document.getElementById('almPlates').value)||0;
   const price = parseFloat(document.getElementById('almPricePerPlate').value)||0;
@@ -4323,7 +4392,15 @@ function openAlmondModal(prefillCustomerId) {
   document.getElementById('almReturnedNow').value=0;
   document.getElementById('almPaid').value=0;
   document.getElementById('almNotes').value='';
-  calcAlmond();
+
+  // Reset cost field styling before auto-fill
+  const costField = document.getElementById('almCostPerPlate');
+  if (costField) costField.style.borderColor = '';
+  const hint = document.getElementById('almCostHint');
+  if (hint) { hint.innerHTML = 'سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.'; hint.style.color = ''; }
+
+  // Auto-fill cost from matching recipe immediately on open
+  autoFillAlmondCost();
   document.getElementById('almondModal').classList.add('show');
 }
 
