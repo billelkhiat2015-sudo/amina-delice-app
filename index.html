@@ -593,30 +593,67 @@
   .modal-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 200;
+    background: rgba(0,0,0,0.55);
+    z-index: 500;
     align-items: center;
     justify-content: center;
     padding: 12px;
   }
   .modal-overlay.show { display: flex; }
-  .modal {
-    background: var(--white);
+
+  /* All modal containers — solid white, never transparent */
+  .modal-content, .modal {
+    background: #FFFFFF !important;
     border-radius: 20px;
-    padding: 22px;
-    width: 600px;
-    max-width: 100%;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    position: relative;
+    z-index: 501;
+  }
+
+  /* arl-row inputs/selects — solid white background, never transparent */
+  .arl-row select, .arl-row input {
+    background: #FFFFFF !important;
+  }
+
+  /* All form inputs/selects inside modals — solid background */
+  .modal-content input,
+  .modal-content select,
+  .modal-content textarea,
+  .modal input,
+  .modal select,
+  .modal textarea {
+    background: #FFFFFF !important;
+  }
+
     max-height: 92vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
   }
   .modal-header {
     display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 22px 0;
     margin-bottom: 18px;
+    background: #FFFFFF;
+    border-radius: 20px 20px 0 0;
   }
   .modal-title { font-size: 17px; font-weight: 700; }
   .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6B5C4F; }
-  .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .modal-footer {
+    display:flex; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap;
+    padding: 0 22px 20px;
+    background: #FFFFFF;
+    border-radius: 0 0 20px 20px;
+  }
+
+  /* Ensure modal body padding when not using modal-header/footer */
+  .modal-content > div:not(.modal-header):not(.modal-footer),
+  .modal > div:not(.modal-header):not(.modal-footer) {
+    background: #FFFFFF;
+  }
 
   /* TABS */
   .tabs { display: flex; gap: 4px; background: var(--cream-dark); border-radius: 12px; padding: 4px; margin-bottom: 18px; }
