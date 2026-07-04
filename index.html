@@ -1777,6 +1777,7 @@
     </div>
 
     <div class="form-grid form-grid-2">
+      <!-- الزبون -->
       <div class="form-group" style="grid-column:span 2">
         <label>الزبون</label>
         <select id="almCustomerSelect" onchange="onAlmondCustomerChange()">
@@ -1784,7 +1785,6 @@
           <option value="__new__">➕ زبون جديد...</option>
         </select>
       </div>
-
       <div class="form-group" id="almNewCustomerNameGroup" style="display:none">
         <label>اسم الزبون الجديد</label>
         <input type="text" id="almNewCustomerName" placeholder="اسم الزبون">
@@ -1794,6 +1794,7 @@
         <input type="text" id="almNewCustomerPhone" placeholder="رقم الهاتف">
       </div>
 
+      <!-- النوع والبلاط -->
       <div class="form-group">
         <label>نوع قلب اللوز</label>
         <select id="almQalbType" onchange="onAlmondQalbTypeChange();autoFillAlmondCost()">
@@ -1801,10 +1802,10 @@
           <option>قلب اللوز محشي بالمكسرات</option>
           <option value="__other__">➕ نوع آخر...</option>
         </select>
-        <input type="text" id="almQalbTypeOther" placeholder="اكتب نوع قلب اللوز" style="display:none;margin-top:6px">
+        <input type="text" id="almQalbTypeOther" placeholder="اكتب النوع" style="display:none;margin-top:6px">
       </div>
       <div class="form-group">
-        <label>نوع البلاط (الصينية)</label>
+        <label>مقاس الصينية</label>
         <select id="almTrayType" onchange="autoFillAlmondCost()">
           <option>بلاط 40/60</option>
           <option>بلاط 40/30</option>
@@ -1815,27 +1816,30 @@
         </select>
       </div>
 
+      <!-- الأعداد والأسعار — صفين واضحين -->
       <div class="form-group">
-        <label>عدد الصواني المُسلَّمة الآن</label>
+        <label>عدد الصواني المُسلَّمة</label>
         <input type="number" id="almPlates" value="1" min="1" oninput="calcAlmond()">
       </div>
+      <div class="form-group">
+        <label>عدد المرجوعة فوراً</label>
+        <input type="number" id="almReturnedNow" value="0" min="0" oninput="calcAlmond()">
+      </div>
+
       <div class="form-group">
         <label>سعر بيع الصينية (دج)</label>
         <input type="number" id="almPricePerPlate" value="500" oninput="calcAlmond()">
       </div>
       <div class="form-group">
-        <label>💰 تكلفة الصينية الواحدة (دج)</label>
-        <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
-        <div class="form-hint" id="almCostHint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
-      </div>
-
-      <div class="form-group">
-        <label>عدد الصواني المرجوعة فوراً (إن وجد)</label>
-        <input type="number" id="almReturnedNow" value="0" min="0" oninput="calcAlmond()">
-      </div>
-      <div class="form-group">
         <label>المبلغ المدفوع الآن (دج)</label>
         <input type="number" id="almPaid" value="0" oninput="calcAlmond()">
+      </div>
+
+      <!-- تكلفة الصينية — سطر كامل مع hint -->
+      <div class="form-group" style="grid-column:span 2">
+        <label>💰 تكلفة الصينية الواحدة (دج)</label>
+        <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
+        <div class="form-hint" id="almCostHint">ℹ️ أضف وصفة من تبويب "🧪 وصفات قلب اللوز" لتعبئة التكلفة تلقائياً.</div>
       </div>
 
       <div class="form-group" style="grid-column:span 2">
@@ -1843,6 +1847,7 @@
         <input type="text" id="almNotes" placeholder="ملاحظات...">
       </div>
     </div>
+
     <div id="almondCalcResult" style="margin:12px 0;padding:12px;background:var(--cream);border-radius:10px;"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('almondModal')">إلغاء</button>
@@ -2062,13 +2067,22 @@ function loadData() {
   ensureDataShape();
   migrateOldAlmondData();
   migrateOldRecipeData();
-  if (!data.products.length && !data.inventory.length) seedDemo();
 
-  // Re-apply the saved color theme immediately on every load, before the user even
-  // visits the settings page — otherwise the app would flash back to the default
-  // gold theme on every refresh.
+  // IMPORTANT: Don't run seedDemo() immediately if localStorage is empty.
+  // If Firebase is available, wait for it to load cloud data first — seedDemo
+  // would otherwise wipe out real data that hasn't arrived from the cloud yet
+  // (this was the root cause of inventory disappearing after a GitHub update).
+  // Only seed demo data if: local storage has nothing AND cloud sync also finds nothing.
+  const hasLocalData = data.products.length > 0 || data.inventory.length > 0;
+  if (hasLocalData) {
+    // Local data exists — use it immediately (cloud will sync on top if newer)
+  } else {
+    // No local data — wait for Firebase before deciding to seed demo
+    // seedDemo will be called from initCloudSync if the cloud doc doesn't exist either
+    data._pendingSeedCheck = true;
+  }
+
   applyTheme(data.settings.theme || 'gold', true);
-
   initCloudSync();
 }
 
@@ -2089,6 +2103,12 @@ function ensureDataShape() {
 function initCloudSync() {
   if (!firebaseAvailable) {
     setSyncStatus('📴 وضع محلي (بدون مزامنة)', '#9A7A45');
+    // Offline: if no local data, seed demo only now
+    if (data._pendingSeedCheck) {
+      delete data._pendingSeedCheck;
+      if (!data.products.length && !data.inventory.length) seedDemo();
+      renderDashboard();
+    }
     return;
   }
   setSyncStatus('🔄 جاري الاتصال بالسحابة...', '#9A7A45');
@@ -2101,35 +2121,58 @@ function initCloudSync() {
           const justWroteLocally = (Date.now() - lastLocalWriteAt) < 2500;
           if (justWroteLocally) {
             setSyncStatus('✅ متزامن', '#2E7D32');
+            // If we were waiting for cloud data and it just arrived via our own write,
+            // clear the pending flag — data is already correct.
+            if (data._pendingSeedCheck) delete data._pendingSeedCheck;
             return;
           }
           isApplyingRemoteUpdate = true;
-          data = doc.data().payload ? JSON.parse(doc.data().payload) : data;
-          ensureDataShape();
-          localStorage.setItem('aminaDelice', JSON.stringify(data));
+          const cloudData = doc.data().payload ? JSON.parse(doc.data().payload) : null;
+          if (cloudData) {
+            data = cloudData;
+            ensureDataShape();
+            delete data._pendingSeedCheck;
+            localStorage.setItem('aminaDelice', JSON.stringify(data));
+          }
           isApplyingRemoteUpdate = false;
-          setSyncStatus('✅ متزامن (تحديث من جهاز آخر)', '#2E7D32');
-          // Re-render whatever the user is currently looking at, so changes from the
-          // other device (phone/computer) appear immediately without a manual refresh.
+          setSyncStatus('✅ متزامن', '#2E7D32');
+          applyTheme(data.settings?.theme || 'gold', true);
           const activePage = document.querySelector('.page.active');
           if (activePage) {
             const pageName = activePage.id.replace('page-','');
             renderPage(pageName);
           }
         } else {
-          // First-ever run: seed the cloud with whatever we have locally.
+          // Cloud document doesn't exist yet — truly first run.
+          // Only seed demo if there is no real local data either.
+          if (data._pendingSeedCheck) {
+            delete data._pendingSeedCheck;
+            if (!data.products.length && !data.inventory.length) seedDemo();
+          }
           pushDataToCloud();
           setSyncStatus('✅ متزامن', '#2E7D32');
+          renderDashboard();
         }
       },
       (error) => {
         console.error('Firestore sync error', error);
         setSyncStatus('⚠️ غير متصل — يعمل محلياً فقط', '#C62828');
+        // Firebase failed — fall back to local data, seed if truly empty
+        if (data._pendingSeedCheck) {
+          delete data._pendingSeedCheck;
+          if (!data.products.length && !data.inventory.length) seedDemo();
+          renderDashboard();
+        }
       }
     );
   } catch (e) {
     console.error('initCloudSync failed', e);
     setSyncStatus('📴 وضع محلي (بدون مزامنة)', '#9A7A45');
+    if (data._pendingSeedCheck) {
+      delete data._pendingSeedCheck;
+      if (!data.products.length && !data.inventory.length) seedDemo();
+      renderDashboard();
+    }
   }
 }
 
