@@ -593,67 +593,30 @@
   .modal-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    z-index: 500;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
     align-items: center;
     justify-content: center;
     padding: 12px;
   }
   .modal-overlay.show { display: flex; }
-
-  /* All modal containers — solid white, never transparent */
-  .modal-content, .modal {
-    background: #FFFFFF !important;
+  .modal {
+    background: var(--white);
     border-radius: 20px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-    position: relative;
-    z-index: 501;
-  }
-
-  /* arl-row inputs/selects — solid white background, never transparent */
-  .arl-row select, .arl-row input {
-    background: #FFFFFF !important;
-  }
-
-  /* All form inputs/selects inside modals — solid background */
-  .modal-content input,
-  .modal-content select,
-  .modal-content textarea,
-  .modal input,
-  .modal select,
-  .modal textarea {
-    background: #FFFFFF !important;
-  }
-
+    padding: 22px;
+    width: 600px;
+    max-width: 100%;
     max-height: 92vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
   }
   .modal-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 22px 0;
     margin-bottom: 18px;
-    background: #FFFFFF;
-    border-radius: 20px 20px 0 0;
   }
   .modal-title { font-size: 17px; font-weight: 700; }
   .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6B5C4F; }
-  .modal-footer {
-    display:flex; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap;
-    padding: 0 22px 20px;
-    background: #FFFFFF;
-    border-radius: 0 0 20px 20px;
-  }
-
-  /* Ensure modal body padding when not using modal-header/footer */
-  .modal-content > div:not(.modal-header):not(.modal-footer),
-  .modal > div:not(.modal-header):not(.modal-footer) {
-    background: #FFFFFF;
-  }
+  .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap; }
 
   /* TABS */
   .tabs { display: flex; gap: 4px; background: var(--cream-dark); border-radius: 12px; padding: 4px; margin-bottom: 18px; }
@@ -1796,7 +1759,7 @@
 
       <div class="form-group">
         <label>نوع قلب اللوز</label>
-        <select id="almQalbType" onchange="onAlmondQalbTypeChange();autoFillAlmondCost()">
+        <select id="almQalbType">
           <option>قلب اللوز سادة (تقليدي)</option>
           <option>قلب اللوز محشي بالمكسرات</option>
           <option value="__other__">➕ نوع آخر...</option>
@@ -1805,13 +1768,9 @@
       </div>
       <div class="form-group">
         <label>نوع البلاط (الصينية)</label>
-        <select id="almTrayType" onchange="autoFillAlmondCost()">
+        <select id="almTrayType">
           <option>بلاط 40/60</option>
           <option>بلاط 40/30</option>
-          <option>بلاط 40/60 سم</option>
-          <option>بلاط 30/40 سم</option>
-          <option>سينية دائرية</option>
-          <option>مقاس مخصص</option>
         </select>
       </div>
 
@@ -1826,7 +1785,7 @@
       <div class="form-group">
         <label>💰 تكلفة الصينية الواحدة (دج)</label>
         <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
-        <div class="form-hint" id="almCostHint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
+        <div class="form-hint">سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.</div>
       </div>
 
       <div class="form-group">
@@ -4290,71 +4249,6 @@ function onAlmondQalbTypeChange() {
   document.getElementById('almQalbTypeOther').style.display = val==='__other__' ? '' : 'none';
 }
 
-// Searches almondRecipes for a recipe matching the selected type + tray size,
-// then auto-fills the cost field with the recipe's calculated total cost per tray.
-// The field stays editable — the user can override it for any specific transaction.
-function autoFillAlmondCost() {
-  const qalbType = document.getElementById('almQalbType').value;
-  const trayType = document.getElementById('almTrayType').value;
-  const costField = document.getElementById('almCostPerPlate');
-  const hint = document.getElementById('almCostHint');
-  if (!costField) return;
-
-  const recipes = data.almondRecipes || [];
-
-  // Try exact match on both name (contains qalbType) and tray size
-  let matched = recipes.find(r =>
-    r.name && r.name.includes(qalbType) &&
-    r.traySize && r.traySize.includes(trayType.replace(' سم','').replace('سم','').trim())
-  );
-
-  // Fallback: match on tray size only
-  if (!matched) {
-    matched = recipes.find(r =>
-      r.traySize && r.traySize.includes(trayType.replace(' سم','').replace('سم','').trim())
-    );
-  }
-
-  // Fallback: match on name only
-  if (!matched) {
-    matched = recipes.find(r =>
-      r.name && r.name.includes(qalbType)
-    );
-  }
-
-  if (matched) {
-    // Calculate full cost: raw ingredients + fixed extra costs
-    const ingCost = (matched.ingredients||[]).reduce((s,ing) =>
-      s + calcIngredientLineCost(ing.invId, ing.qty, ing.unit), 0
-    );
-    const extraTotal = Object.values(matched.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
-    const totalCost = ingCost + extraTotal;
-
-    costField.value = totalCost.toFixed(2);
-    costField.style.borderColor = '#2E7D32';
-    if (hint) {
-      hint.innerHTML = `✅ تم جلب التكلفة تلقائياً من وصفة: <strong>${escapeHtml(matched.name)}</strong> (${totalCost.toFixed(0)} دج) — يمكنك تعديلها يدوياً.`;
-      hint.style.color = '#2E7D32';
-    }
-
-    // Also auto-fill sale price from recipe if field is still at default (500)
-    const priceField = document.getElementById('almPricePerPlate');
-    if (priceField && matched.salePrice && parseFloat(priceField.value)===500) {
-      priceField.value = matched.salePrice;
-    }
-  } else {
-    costField.style.borderColor = '';
-    if (hint) {
-      hint.innerHTML = recipes.length > 0
-        ? `⚠️ لم يُعثر على وصفة مطابقة لهذا النوع والمقاس — يمكنك إدخال التكلفة يدوياً، أو <a href="#" onclick="switchAlmondTab('recipes',null);closeModal('almondModal');return false;" style="color:var(--gold-dark)">إضافة وصفة جديدة</a>.`
-        : `ℹ️ أضف وصفة من تبويب "🧪 وصفات قلب اللوز" لتعبئة التكلفة تلقائياً.`;
-      hint.style.color = '#9A6E1E';
-    }
-  }
-
-  calcAlmond();
-}
-
 function calcAlmond() {
   const plates = parseFloat(document.getElementById('almPlates').value)||0;
   const price = parseFloat(document.getElementById('almPricePerPlate').value)||0;
@@ -4392,15 +4286,7 @@ function openAlmondModal(prefillCustomerId) {
   document.getElementById('almReturnedNow').value=0;
   document.getElementById('almPaid').value=0;
   document.getElementById('almNotes').value='';
-
-  // Reset cost field styling before auto-fill
-  const costField = document.getElementById('almCostPerPlate');
-  if (costField) costField.style.borderColor = '';
-  const hint = document.getElementById('almCostHint');
-  if (hint) { hint.innerHTML = 'سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.'; hint.style.color = ''; }
-
-  // Auto-fill cost from matching recipe immediately on open
-  autoFillAlmondCost();
+  calcAlmond();
   document.getElementById('almondModal').classList.add('show');
 }
 
