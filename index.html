@@ -1269,19 +1269,8 @@
         <div id="almondTabTransactions">
           <div class="stats-grid" id="almondStatsGrid"></div>
 
-          <!-- مؤشر حالة المخزون -->
-          <div class="card" id="almondStockIndicator" style="display:none">
-            <div class="card-title">📦 حالة المخزون للوصفة المختارة</div>
-            <div id="almondStockIndicatorBody"></div>
-          </div>
-
           <div class="flex-between mb-20">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <label style="font-weight:700;font-size:14px">الوصفة المستخدمة:</label>
-              <select id="almondRecipeSelect" onchange="checkAlmondStock()" style="padding:8px 12px;border:2px solid var(--cream-dark);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;background:var(--cream)">
-                <option value="">-- اختر وصفة --</option>
-              </select>
-            </div>
+            <div></div>
             <button class="btn btn-primary" onclick="openAlmondModal()">➕ معاملة جديدة</button>
           </div>
 
@@ -1794,6 +1783,15 @@
         <input type="text" id="almNewCustomerPhone" placeholder="رقم الهاتف">
       </div>
 
+      <!-- اختيار الوصفة — يملأ كل شيء تلقائياً -->
+      <div class="form-group" style="grid-column:span 2">
+        <label>🧪 الوصفة المستخدمة</label>
+        <select id="almRecipeSelect" onchange="onAlmondRecipeSelectChange()" style="border:2px solid var(--gold);background:#FFFEF5">
+          <option value="">-- اختر وصفة (اختياري) --</option>
+        </select>
+        <div class="form-hint" id="almRecipeHint">اختر وصفة لتعبئة النوع والمقاس والتكلفة وسعر البيع تلقائياً.</div>
+      </div>
+
       <!-- النوع والبلاط -->
       <div class="form-group">
         <label>نوع قلب اللوز</label>
@@ -1816,7 +1814,7 @@
         </select>
       </div>
 
-      <!-- الأعداد والأسعار — صفين واضحين -->
+      <!-- الأعداد والأسعار -->
       <div class="form-group">
         <label>عدد الصواني المُسلَّمة</label>
         <input type="number" id="almPlates" value="1" min="1" oninput="calcAlmond()">
@@ -1835,11 +1833,11 @@
         <input type="number" id="almPaid" value="0" oninput="calcAlmond()">
       </div>
 
-      <!-- تكلفة الصينية — سطر كامل مع hint -->
+      <!-- التكلفة — تُملأ تلقائياً من الوصفة -->
       <div class="form-group" style="grid-column:span 2">
         <label>💰 تكلفة الصينية الواحدة (دج)</label>
         <input type="number" id="almCostPerPlate" value="0" oninput="calcAlmond()">
-        <div class="form-hint" id="almCostHint">ℹ️ أضف وصفة من تبويب "🧪 وصفات قلب اللوز" لتعبئة التكلفة تلقائياً.</div>
+        <div class="form-hint" id="almCostHint">اختر وصفة لتعبئة التكلفة تلقائياً، أو أدخلها يدوياً.</div>
       </div>
 
       <div class="form-group" style="grid-column:span 2">
@@ -4419,6 +4417,74 @@ function calcAlmond() {
     <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--cream-dark)"><span style="font-weight:700">💰 الربح الصافي المتوقع (${netPlates} × (${price}-${cost}))</span><strong style="color:${totalProfit>=0?'#2E7D32':'#C62828'}">${totalProfit} دج</strong></div>`;
 }
 
+// Fills the recipe dropdown inside the transaction modal with all saved almond recipes
+function populateAlmondModalRecipeSelect() {
+  const sel = document.getElementById('almRecipeSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- اختر وصفة (اختياري) --</option>';
+  (data.almondRecipes || []).forEach(r => {
+    const ingCost = (r.ingredients||[]).reduce((s,ing) => s + calcIngredientLineCost(ing.invId, ing.qty, ing.unit), 0);
+    const extraTotal = Object.values(r.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
+    const totalCost = (ingCost + extraTotal).toFixed(0);
+    sel.add(new Option(`${r.name} — ${r.traySize} (تكلفة: ${totalCost} دج)`, r.id));
+  });
+}
+
+// Called when user picks a recipe from the dropdown inside the transaction modal.
+// Auto-fills: tray type, qalb type (from recipe name), cost per plate, sale price.
+function onAlmondRecipeSelectChange() {
+  const recipeId = document.getElementById('almRecipeSelect')?.value;
+  const hint = document.getElementById('almRecipeHint');
+
+  if (!recipeId) {
+    if (hint) { hint.textContent = 'اختر وصفة لتعبئة النوع والمقاس والتكلفة وسعر البيع تلقائياً.'; hint.style.color = ''; }
+    return;
+  }
+
+  const recipe = (data.almondRecipes||[]).find(r => r.id == recipeId);
+  if (!recipe) return;
+
+  // Calculate full cost from recipe
+  const ingCost = (recipe.ingredients||[]).reduce((s,ing) => s + calcIngredientLineCost(ing.invId, ing.qty, ing.unit), 0);
+  const extraTotal = Object.values(recipe.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
+  const totalCost = ingCost + extraTotal;
+
+  // Fill tray size
+  const trayEl = document.getElementById('almTrayType');
+  if (trayEl && recipe.traySize) {
+    // Try to match existing option
+    const opts = Array.from(trayEl.options);
+    const match = opts.find(o => o.value === recipe.traySize || recipe.traySize.includes(o.value) || o.value.includes(recipe.traySize.replace(' سم','')));
+    if (match) trayEl.value = match.value;
+  }
+
+  // Fill cost per plate
+  const costEl = document.getElementById('almCostPerPlate');
+  if (costEl) {
+    costEl.value = totalCost.toFixed(2);
+    costEl.style.borderColor = '#2E7D32';
+  }
+
+  // Fill sale price if recipe has one
+  const priceEl = document.getElementById('almPricePerPlate');
+  if (priceEl && recipe.salePrice) {
+    priceEl.value = recipe.salePrice;
+  }
+
+  // Show stock status for this recipe
+  const stockStatus = checkRecipeStock(recipe, 1);
+  if (hint) {
+    const profit = (recipe.salePrice||0) - totalCost;
+    hint.innerHTML = `
+      ${stockStatus.ok ? '✅ المواد كافية في المخزون' : '⚠️ ' + stockStatus.issues[0] || 'مواد غير كافية'}
+      &nbsp;|&nbsp; تكلفة: <strong>${totalCost.toFixed(0)} دج</strong>
+      &nbsp;|&nbsp; ربح متوقع: <strong style="color:${profit>=0?'#2E7D32':'#C62828'}">${profit.toFixed(0)} دج</strong>`;
+    hint.style.color = stockStatus.ok ? '#2E7D32' : '#E65100';
+  }
+
+  calcAlmond();
+}
+
 function openAlmondModal(prefillCustomerId) {
   populateAlmondCustomerSelect();
   document.getElementById('almCustomerSelect').value = prefillCustomerId || '';
@@ -4436,14 +4502,28 @@ function openAlmondModal(prefillCustomerId) {
   document.getElementById('almPaid').value=0;
   document.getElementById('almNotes').value='';
 
-  // Reset cost field styling before auto-fill
-  const costField = document.getElementById('almCostPerPlate');
-  if (costField) costField.style.borderColor = '';
+  // Reset cost field styling
+  const costEl = document.getElementById('almCostPerPlate');
+  if (costEl) costEl.style.borderColor = '';
   const hint = document.getElementById('almCostHint');
-  if (hint) { hint.innerHTML = 'سعر شراء/تصنيع الصينية الواحدة — يُستخدم لحساب الربح الصافي الحقيقي.'; hint.style.color = ''; }
+  if (hint) { hint.textContent = 'اختر وصفة لتعبئة التكلفة تلقائياً، أو أدخلها يدوياً.'; hint.style.color = ''; }
 
-  // Auto-fill cost from matching recipe immediately on open
-  autoFillAlmondCost();
+  // Populate recipe dropdown and auto-select first recipe if only one exists
+  populateAlmondModalRecipeSelect();
+  const recipeEl = document.getElementById('almRecipeSelect');
+  if (recipeEl) {
+    const recipes = data.almondRecipes || [];
+    if (recipes.length === 1) {
+      recipeEl.value = recipes[0].id;
+      onAlmondRecipeSelectChange();
+    } else {
+      recipeEl.value = '';
+      const recipeHint = document.getElementById('almRecipeHint');
+      if (recipeHint) { recipeHint.textContent = 'اختر وصفة لتعبئة النوع والمقاس والتكلفة وسعر البيع تلقائياً.'; recipeHint.style.color = ''; }
+    }
+  }
+
+  calcAlmond();
   document.getElementById('almondModal').classList.add('show');
 }
 
@@ -4488,7 +4568,7 @@ function saveAlmond() {
   const trayType = document.getElementById('almTrayType').value;
 
   // Check if a recipe is selected — if so, check stock and deduct automatically
-  const recipeId = document.getElementById('almondRecipeSelect')?.value;
+  const recipeId = document.getElementById('almRecipeSelect')?.value;
   const recipe = recipeId ? (data.almondRecipes||[]).find(r=>r.id==recipeId) : null;
   const remainingPlates = plates - returnedNow;
 
@@ -5158,16 +5238,10 @@ function switchAlmondTab(tab, btn) {
   if (tab==='transactions') populateAlmondRecipeSelect();
 }
 
-// Populate the recipe dropdown in the transactions tab
+// Kept for backward compatibility — no longer populates a page-level dropdown
+// (that was removed). The modal-level dropdown is handled by populateAlmondModalRecipeSelect().
 function populateAlmondRecipeSelect() {
-  const sel = document.getElementById('almondRecipeSelect');
-  if (!sel) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">-- اختر وصفة (لحساب التكلفة ومؤشر المخزون) --</option>';
-  (data.almondRecipes || []).forEach(r => {
-    sel.add(new Option(r.name + ' — ' + r.traySize, r.id));
-  });
-  if (current) sel.value = current;
+  // No-op: the page-level recipe select was removed. Modal uses almRecipeSelect instead.
 }
 
 // Open modal for a new or existing almond recipe
@@ -5426,35 +5500,9 @@ function checkRecipeStock(recipe, numTrays) {
 }
 
 // Called when recipe dropdown changes in transactions tab — shows stock indicator
-function checkAlmondStock() {
-  const recipeId = document.getElementById('almondRecipeSelect')?.value;
-  const card = document.getElementById('almondStockIndicator');
-  const body = document.getElementById('almondStockIndicatorBody');
-  if (!recipeId || !card || !body) { if(card) card.style.display='none'; return; }
-  const recipe = (data.almondRecipes||[]).find(r=>r.id==recipeId);
-  if (!recipe) { card.style.display='none'; return; }
+// checkAlmondStock: stock indicator moved to modal — no longer uses page-level elements
+function checkAlmondStock() {}
 
-  // How many trays needed? Ask for 1 by default, will be updated when user sets qty in modal
-  const status = checkRecipeStock(recipe, 1);
-  const ingCost = recipe.ingredients.reduce((s,ing)=>s+calcIngredientLineCost(ing.invId,ing.qty,ing.unit),0);
-  const extraTotal = Object.values(recipe.extraCosts||{}).reduce((s,v)=>s+(v||0),0);
-  const totalCost = ingCost + extraTotal;
-  const profit = (recipe.salePrice||0) - totalCost;
-
-  card.style.display = '';
-  body.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-      <span style="font-size:14px;font-weight:700;color:${status.ok?'#2E7D32':'#E65100'}">
-        ${status.ok ? '✅ المواد كافية لصينية واحدة' : '⚠️ مواد غير كافية لصينية واحدة'}
-      </span>
-    </div>
-    ${status.issues.length ? `<div style="background:#FFF3E0;padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px">${status.issues.map(i=>`• ${i}`).join('<br>')}</div>` : ''}
-    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
-      <span>📐 المقاس: <strong>${recipe.traySize}</strong></span>
-      <span>💰 تكلفة الصينية: <strong>${totalCost.toFixed(0)} دج</strong></span>
-      <span>📈 الربح المتوقع: <strong style="color:${profit>=0?'#2E7D32':'#C62828'}">${profit.toFixed(0)} دج</strong></span>
-    </div>`;
-}
 
 function deleteAlmondRecipe(id) {
   confirmAction('هل تريد حذف هذه الوصفة؟ لا يمكن التراجع عن هذا الإجراء.', () => {
