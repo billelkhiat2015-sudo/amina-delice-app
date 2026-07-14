@@ -4688,14 +4688,27 @@ function renderAlmond() {
   const totalPlatesDelivered = data.almond.reduce((s,a)=>s+a.platesDelivered,0);
   const totalPlatesReturned = data.almond.reduce((s,a)=>s+a.platesReturned,0);
   const totalPlatesRemaining = data.almond.reduce((s,a)=>s+a.platesRemaining,0);
-  const totalPaid = data.almond.reduce((s,a)=>s+a.paid,0);
-  const totalDebt = data.almond.reduce((s,a)=>s+a.remaining,0);
+  const totalPaid = data.almond.reduce((s,a)=>s+(a.paid||0),0);
+  const totalDebt = data.almond.reduce((s,a)=>s+(a.remaining||0),0);
+
+  // تفصيل حسب المقاس
+  const byTray = {};
+  data.almond.forEach(a => {
+    const t = a.trayType || 'غير محدد';
+    if (!byTray[t]) byTray[t] = 0;
+    byTray[t] += a.platesRemaining || 0;
+  });
+  const trayDetail = Object.entries(byTray)
+    .filter(([,v])=>v>0)
+    .map(([t,v])=>`${t}: <strong>${v}</strong>`)
+    .join(' | ');
 
   document.getElementById('almondStatsGrid').innerHTML = `
     <div class="stat-card stat-card-gold" data-icon="📦">
       <div class="stat-label">صواني متبقية عند الزبائن</div>
       <div class="stat-value">${totalPlatesRemaining}</div>
       <div class="stat-sub">من أصل ${totalPlatesDelivered} مُسلَّمة</div>
+      ${trayDetail ? `<div style="font-size:11.5px;margin-top:6px;color:rgba(255,255,255,0.9)">${trayDetail}</div>` : ''}
     </div>
     <div class="stat-card stat-card-blue" data-icon="↩️">
       <div class="stat-label">صواني مرجوعة</div>
@@ -5145,67 +5158,59 @@ function renderCustomerDetail(c) {
 
 // ===================== PROFITS =====================
 function renderProfits() {
-  // Sweets/cake orders profit (from data.profits, recorded when an order is saved)
   const ordersRev = data.profits.reduce((s,p)=>s+p.revenue,0);
   const ordersCost = data.profits.reduce((s,p)=>s+p.cost,0);
 
-  // Qalb el Louz: only money actually collected (paid) counts as realized revenue.
-  // Outstanding debt is NOT profit yet — it only becomes profit once collected.
-  // The matching cost is taken proportionally to how much of the total has been paid so far
-  // (e.g. if 50% of an entry's total has been paid, 50% of its cost is recognized too),
-  // so partial payments don't get counted as 100% pure profit before their cost is realized.
-  const almondPaid = data.almond.reduce((s,a)=>s+a.paid,0);
+  const almondPaid = data.almond.reduce((s,a)=>s+(a.paid||0),0);
   const almondCost = data.almond.reduce((s,a) => {
-    const totalCost = a.totalCost || 0;
+    const tc = a.totalCost || 0;
     if (!a.total || a.total<=0) return s;
-    const paidRatio = Math.min(1, a.paid / a.total);
-    return s + totalCost * paidRatio;
+    return s + tc * Math.min(1, (a.paid||0) / a.total);
   }, 0);
-  const almondProfit = almondPaid - almondCost;
+  const almondProfit = Math.round(almondPaid - almondCost);
+  const totalRev = Math.round(ordersRev + almondPaid);
+  const totalCost = Math.round(ordersCost + almondCost);
+  const net = Math.round(totalRev - totalCost);
 
-  const totalRev = ordersRev + almondPaid;
-  const totalCost = ordersCost + almondCost;
-  const net = totalRev - totalCost;
+  const fmt = n => Math.round(n).toLocaleString('en-US') + ' دج';
+  document.getElementById('totalRevenue').textContent = fmt(totalRev);
+  document.getElementById('totalCosts').textContent = fmt(totalCost);
+  document.getElementById('netProfit').textContent = fmt(net);
+  document.getElementById('almondProfit').textContent = fmt(almondProfit);
 
-  document.getElementById('totalRevenue').textContent = totalRev.toLocaleString('en-US') + ' دج';
-  document.getElementById('totalCosts').textContent = totalCost.toLocaleString('en-US') + ' دج';
-  document.getElementById('netProfit').textContent = net.toLocaleString('en-US') + ' دج';
-  document.getElementById('almondProfit').textContent = almondProfit.toLocaleString('en-US') + ' دج';
-
-  // Build a combined, chronological record: sweets orders + almond entries (showing what was collected).
   const combinedRows = [
     ...data.profits.map(p => ({
       date: p.date, product: p.product, qty: p.qty,
-      revenue: p.revenue, cost: p.cost, profit: p.profit, source: 'حلويات'
+      revenue: p.revenue, cost: p.cost, profit: p.profit
     })),
     ...data.almond.map(a => {
       const c = getCustomerById(a.customerId);
-      const paidRatio = (a.total>0) ? Math.min(1, a.paid / a.total) : 0;
-      const matchedCost = (a.totalCost || 0) * paidRatio;
+      const paidRatio = (a.total>0) ? Math.min(1, (a.paid||0)/a.total) : 0;
+      const matchedCost = (a.totalCost||0) * paidRatio;
       return {
         date: a.date,
-        product: `🍯 ${a.qalbType || 'قلب اللوز'} — ${c ? c.name : 'زبون'}`,
-        qty: `${a.platesDelivered - a.platesReturned} صينية`,
-        revenue: a.paid, cost: matchedCost, profit: a.paid - matchedCost, source: 'قلب اللوز'
+        product: `🍯 ${a.qalbType||'قلب اللوز'} — ${c?c.name:'زبون'}`,
+        qty: `${(a.platesDelivered||0)-(a.platesReturned||0)} صينية`,
+        revenue: a.paid||0, cost: matchedCost, profit: (a.paid||0)-matchedCost
       };
     })
-  ];
-  combinedRows.sort((a,b) => new Date(a.date) - new Date(b.date));
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
 
   const tbody = document.getElementById('profitsTable');
   if (!combinedRows.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#7A6B5C">لا توجد مبيعات بعد</td></tr>';
     return;
   }
-  tbody.innerHTML = combinedRows.slice().reverse().map(p=>{
+  tbody.innerHTML = combinedRows.map(p=>{
     const d = new Date(p.date).toLocaleDateString('en-GB');
+    const rev = Math.round(p.revenue); const cost = Math.round(p.cost); const profit = Math.round(p.profit);
     return `<tr>
       <td>${d}</td>
       <td>${escapeHtml(p.product)}</td>
       <td>${p.qty}</td>
-      <td>${p.revenue.toFixed(0)} دج</td>
-      <td>${p.cost.toFixed(0)} دج</td>
-      <td class="${p.profit>=0?'profit-positive':'profit-negative'}">${p.profit.toFixed(0)} دج</td>
+      <td>${rev.toLocaleString('en-US')} دج</td>
+      <td>${cost.toLocaleString('en-US')} دج</td>
+      <td class="${profit>=0?'profit-positive':'profit-negative'}">${profit.toLocaleString('en-US')} دج</td>
     </tr>`;
   }).join('');
 }
