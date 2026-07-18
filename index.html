@@ -2094,6 +2094,40 @@ function ensureDataShape() {
   if (!data.profits) data.profits = [];
   if (!data.almondRecipes) data.almondRecipes = [];
   if (!data.settings) data.settings = { storeWhatsapp:'', storeName:'Amina Délice' };
+
+  // Normalize orders coming from the Lovable catalog — it uses different field names:
+  // quantity → qty, baladia → commune, deliveryAt → deliveryDate, createdAt → date
+  data.orders.forEach(o => {
+    if (o.quantity !== undefined && o.qty === undefined) {
+      o.qty = o.quantity;
+      delete o.quantity;
+    }
+    if (o.baladia !== undefined && !o.commune) {
+      o.commune = o.baladia;
+      delete o.baladia;
+    }
+    if (o.deliveryAt !== undefined && !o.deliveryDate) {
+      o.deliveryDate = o.deliveryAt;
+      delete o.deliveryAt;
+    }
+    if (o.createdAt !== undefined && !o.date) {
+      o.date = o.createdAt;
+      delete o.createdAt;
+    }
+    if (o.note !== undefined && !o.notes) {
+      o.notes = o.note;
+      delete o.note;
+    }
+    if (o.unitPrice !== undefined && !o.priceType) {
+      o.priceType = 'حبة';
+    }
+    // Ensure required fields have defaults
+    if (!o.qty) o.qty = 1;
+    if (!o.priceType) o.priceType = 'حبة';
+    if (!o.status) o.status = 'جديدة';
+    if (!o.wilaya) o.wilaya = '';
+    if (!o.commune) o.commune = '';
+  });
 }
 
 // Subscribes to the shared cloud document. Any change made on ANY device (phone or
