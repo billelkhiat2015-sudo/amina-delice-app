@@ -993,22 +993,22 @@
       <!-- ============ DASHBOARD ============ -->
       <div id="page-dashboard" class="page active">
         <div class="stats-grid">
-          <div class="stat-card stat-card-green" data-icon="💰">
+          <div class="stat-card stat-card-green" data-icon="💰" onclick="navigateTo('profits')" style="cursor:pointer">
             <div class="stat-label">مبيعات اليوم</div>
             <div class="stat-value" id="todaySales">0 دج</div>
             <div class="stat-sub">إجمالي المبيعات</div>
           </div>
-          <div class="stat-card stat-card-blue" data-icon="🛒">
+          <div class="stat-card stat-card-blue" data-icon="🛒" onclick="navigateTo('orders')" style="cursor:pointer">
             <div class="stat-label">الطلبيات</div>
             <div class="stat-value" id="totalOrders">0</div>
             <div class="stat-sub">إجمالي الطلبات</div>
           </div>
-          <div class="stat-card stat-card-pink" data-icon="⭐">
+          <div class="stat-card stat-card-pink" data-icon="⭐" onclick="navigateTo('customers')" style="cursor:pointer">
             <div class="stat-label">زبائن مميزون</div>
             <div class="stat-value" id="vipCount">0</div>
             <div class="stat-sub">عدد الزبائن</div>
           </div>
-          <div class="stat-card stat-card-orange" data-icon="📦">
+          <div class="stat-card stat-card-orange" data-icon="📦" onclick="navigateTo('inventory')" style="cursor:pointer">
             <div class="stat-label">المخزون المنخفض</div>
             <div class="stat-value" id="lowStock">0</div>
             <div class="stat-sub">مادة تحتاج تجديد</div>
@@ -2539,6 +2539,8 @@ const pageTitles = {
   profits:'💰 الأرباح',
   settings:'⚙️ إعدادات المحل'
 };
+
+function navigateTo(name) { showPage(name); }
 
 function showPage(name, skipNav) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
